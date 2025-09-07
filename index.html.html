@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CreatorGames‑style Arcade</title>
+  <meta name="description" content="Free 1‑file arcade site with Snake & Flappy. Mobile friendly. Deploy on GitHub Pages/Netlify/Vercel."/>
+  <style>
+    :root{
+      --bg:#0b0f16; --panel:#0f1724; --accent:#4df3ff; --accent2:#9dff4d; --text:#eaf6ff; --muted:#93a4b8;
+      --shadow:0 10px 30px rgba(0,0,0,.45), inset 0 0 20px rgba(77,243,255,.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 10% 0%, #101a2a 0%, #0b0f16 60%) fixed;
+      color:var(--text);
+      display:flex; flex-direction:column; align-items:center;
+    }
+    header{
+      width:100%; max-width:1100px; padding:18px 16px; position:sticky; top:0; z-index:5;
+      background:linear-gradient(180deg, rgba(11,15,22,.9), rgba(11,15,22,.6) 70%, rgba(11,15,22,0));
+      backdrop-filter: blur(6px);
+    }
+    .brand{display:flex; gap:12px; align-items:center}
+    .logo{width:42px; aspect-ratio:1; border-radius:12px; background:radial-gradient(circle at 30% 30%, var(--accent), #3f6ef7 60%); box-shadow:0 0 22px rgba(77,243,255,.35)}
+    h1{font-size:20px; margin:0; letter-spacing:.4px}
+
+    main{width:100%; max-width:1100px; padding:18px; display:grid; grid-template-columns: 1fr 340px; gap:18px}
+    @media (max-width: 920px){ main{grid-template-columns:1fr} }
+
+    .card{background:var(--panel); border:1px solid rgba(77,243,255,.12); border-radius:18px; box-shadow:var(--shadow)}
+    .controls{padding:14px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between}
+    .controls .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    label{font-size:13px; color:var(--muted)}
+    select,button,input[type="checkbox"]{
+      appearance:none; border:none; outline:none; background:#0b1324; color:var(--text);
+      border:1px solid rgba(77,243,255,.2); border-radius:12px; padding:10px 12px; box-shadow: inset 0 0 8px rgba(77,243,255,.08);
+    }
+    button{cursor:pointer; transition:transform .06s ease, box-shadow .06s ease}
+    button:hover{transform:translateY(-1px)}
+    button:active{transform:translateY(0)}
+    .btn-primary{background:linear-gradient(180deg, #0f2a38, #0b1324); border-color:rgba(77,243,255,.35)}
+    .pill{font-size:12px; color:var(--muted); padding:6px 10px; border-radius:999px; background:#0b1324; border:1px solid rgba(157,255,77,.25)}
+
+    .stage-wrap{padding:16px}
+    .stage{width:100%; aspect-ratio:16/9; background:#060910; border-radius:16px; border:1px solid rgba(77,243,255,.15); display:grid; place-items:center; position:relative; overflow:hidden}
+    canvas{width:100%; height:100%}
+
+    .sidebar{display:flex; flex-direction:column; gap:12px}
+    .panel{padding:16px}
+    .kpi{display:flex; align-items:center; justify-content:space-between; margin:8px 0; padding:10px 12px; background:#0b1324; border:1px solid rgba(77,243,255,.12); border-radius:12px}
+    .muted{color:var(--muted)}
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size:12px; padding:2px 6px; border:1px solid rgba(77,243,255,.25); border-radius:6px}
+
+    footer{margin:20px 0 30px; color:var(--muted); font-size:12px}
+    a{color:var(--accent)}
+
+    .mobile-keys{display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:10px}
+    .mobile-keys button{padding:12px; border-radius:12px}
+    .hide{display:none}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>CreatorGames‑style Arcade (Free)</h1>
+        <div class="pill">Snake + Flappy • Offline & Open Source • Mobile Friendly</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="controls">
+        <div class="row">
+          <label for="game">Game</label>
+          <select id="game">
+            <option value="snake">Snake</option>
+            <option value="flappy">Flappy</option>
+          </select>
+          <button id="play" class="btn-primary">▶ Play / Restart</button>
+        </div>
+        <div class="row">
+          <span class="muted">FPS:</span>
+          <span id="fps" class="kbd">—</span>
+          <span class="muted">Screen:</span>
+          <span id="screen" class="kbd">—</span>
+        </div>
+      </div>
+      <div class="stage-wrap">
+        <div class="stage">
+          <canvas id="canvas" width="960" height="540" aria-label="Game canvas" role="img"></canvas>
+        </div>
+        <div class="mobile-keys" id="mobileKeys">
+          <button data-key="ArrowUp">↑</button>
+          <button data-key="Space">⟂</button>
+          <button data-key="ArrowRight">→</button>
+          <button data-key="ArrowLeft">←</button>
+          <button data-key="ArrowDown">↓</button>
+          <button id="pauseBtn">⏸</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <div class="card panel">
+        <h3 style="margin:0 0 6px">Scoreboard</h3>
+        <div class="kpi"><span>Score</span><strong id="score">0</strong></div>
+        <div class="kpi"><span>Best</span><strong id="best">0</strong></div>
+        <div class="kpi"><span>State</span><strong id="state">idle</strong></div>
+        <div style="margin-top:10px" class="muted">Controls: <span class="kbd">Arrows</span> / <span class="kbd">WASD</span> • <span class="kbd">Space</span> to jump (Flappy) • <span class="kbd">P</span> pause</div>
+      </div>
+      <div class="card panel">
+        <h3 style="margin:0 0 6px">How to deploy (free)</h3>
+        <ol style="margin:0 0 0 18px; padding:0">
+          <li>Save this file as <span class="kbd">index.html</span>.</li>
+          <li>Create a GitHub repo → Upload <span class="kbd">index.html</span>.</li>
+          <li>Settings → Pages → Deploy from <em>main</em> → your site is live.</li>
+          <li>Or drag‑drop to <a href="https://app.netlify.com/drop" target="_blank" rel="noreferrer">Netlify Drop</a>.</li>
+        </ol>
+      </div>
+      <div class="card panel">
+        <h3 style="margin:0 0 6px">Optional: Solana token</h3>
+        <p class="muted">Later, you can add wallet login (Phantom) and reward your <em>pump.fun</em> token for high scores. This starter keeps it simple and offline.</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer>
+    Built with ❤️ using plain HTML5 Canvas. No trackers, no servers. You can add more games easily inside this file.
+  </footer>
+
+<script>
+(() => {
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const stateEl = document.getElementById('state');
+  const fpsEl = document.getElementById('fps');
+  const screenEl = document.getElementById('screen');
+  const gameSelect = document.getElementById('game');
+  const playBtn = document.getElementById('play');
+  const pauseBtn = document.getElementById('pauseBtn');
+  const mobileKeys = document.getElementById('mobileKeys');
+
+  let game, running=false, last=0, frames=0, fps=0, paused=false;
+  let best = Number(localStorage.getItem('arcade_best')||0);
+  bestEl.textContent = best;
+
+  function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+  function clamp(v,a,b){return Math.max(a, Math.min(b,v))}
+  function setState(s){stateEl.textContent=s}
+
+  function resize(){
+    const rect = canvas.getBoundingClientRect();
+    screenEl.textContent = Math.round(rect.width)+'×'+Math.round(rect.height);
+    // show mobile keys if width < 720
+    mobileKeys.classList.toggle('hide', rect.width>=720);
+  }
+  window.addEventListener('resize', resize); resize();
+
+  // Base Game interface
+  class BaseGame {
+    constructor(){this.score=0}
+    start(){}
+    update(dt){}
+    draw(){}
+    key(k,down){}
+  }
+
+  // SNAKE ------------------------------------------------------
+  class SnakeGame extends BaseGame{
+    constructor(){
+      super();
+      this.gs = 24; // grid size
+      this.cols = Math.floor(canvas.width/this.gs);
+      this.rows = Math.floor(canvas.height/this.gs);
+      this.reset();
+    }
+    reset(){
+      this.dir = {x:1,y:0};
+      this.snake = [{x:5,y:5}];
+      this.food = this.spawnFood();
+      this.t=0; this.step=110; // ms per step
+      this.score=0;
+    }
+    spawnFood(){
+      let p;
+      do{ p={x:rand(0,this.cols-1), y:rand(0,this.rows-1)} }while(this.snake.some(s=>s.x===p.x&&s.y===p.y));
+      return p;
+    }
+    start(){ this.reset() }
+    update(dt){
+      this.t+=dt;
+      while(this.t>this.step){ this.t-=this.step; this.tick(); }
+    }
+    tick(){
+      const head = {x:this.snake[0].x+this.dir.x, y:this.snake[0].y+this.dir.y};
+      // wrap
+      head.x = (head.x+this.cols)%this.cols;
+      head.y = (head.y+this.rows)%this.rows;
+      // collide self
+      if(this.snake.some((s,i)=>i&&s.x===head.x&&s.y===head.y)) { gameOver(); return; }
+      this.snake.unshift(head);
+      if(head.x===this.food.x && head.y===this.food.y){
+        this.score+=10; this.food=this.spawnFood(); this.step=clamp(this.step-3, 50, 120);
+      } else { this.snake.pop(); }
+    }
+    draw(){
+      // background grid glow
+      ctx.fillStyle = '#09121f'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      for(let x=0;x<canvas.width;x+=this.gs){
+        ctx.fillStyle='rgba(77,243,255,.03)'; ctx.fillRect(x,0,1,canvas.height);
+      }
+      for(let y=0;y<canvas.height;y+=this.gs){
+        ctx.fillStyle='rgba(77,243,255,.03)'; ctx.fillRect(0,y,canvas.width,1);
+      }
+      // food
+      ctx.fillStyle = '#9dff4d';
+      ctx.fillRect(this.food.x*this.gs, this.food.y*this.gs, this.gs, this.gs);
+      // snake
+      ctx.fillStyle = '#4df3ff';
+      this.snake.forEach((s,i)=>{
+        const a = Math.max(.3, 1 - i/this.snake.length);
+        ctx.globalAlpha=a;
+        ctx.fillRect(s.x*this.gs+1, s.y*this.gs+1, this.gs-2, this.gs-2);
+        ctx.globalAlpha=1;
+      });
+      // score text
+      drawHUD(this.score);
+    }
+    key(k,down){ if(!down) return;
+      const d=this.dir;
+      if(k==='ArrowUp'||k==='KeyW'){ if(d.y!==1) this.dir={x:0,y:-1} }
+      if(k==='ArrowDown'||k==='KeyS'){ if(d.y!==-1) this.dir={x:0,y:1} }
+      if(k==='ArrowLeft'||k==='KeyA'){ if(d.x!==1) this.dir={x:-1,y:0} }
+      if(k==='ArrowRight'||k==='KeyD'){ if(d.x!==-1) this.dir={x:1,y:0} }
+    }
+  }
+
+  // FLAPPY -----------------------------------------------------
+  class FlappyGame extends BaseGame{
+    constructor(){ super(); this.reset(); }
+    reset(){
+      this.bird = {x:160, y:canvas.height/2, vy:0};
+      this.gravity = 900; // px/s^2
+      this.impulse = -320; // jump
+      this.pipes=[]; this.spawnTimer=0; this.spawnEvery=1500; // ms
+      this.speed=150; this.gap=170; this.alive=true; this.score=0;
+    }
+    start(){ this.reset() }
+    update(dt){
+      if(!this.alive) return;
+      this.bird.vy += this.gravity*(dt/1000);
+      this.bird.y += this.bird.vy*(dt/1000);
+      // spawn pipes
+      this.spawnTimer += dt;
+      while(this.spawnTimer>this.spawnEvery){
+        this.spawnTimer -= this.spawnEvery;
+        const h = rand(80, canvas.height-80-this.gap);
+        this.pipes.push({x:canvas.width+40, top:h, bottom:h+this.gap, w:70, scored:false});
+      }
+      // move pipes
+      this.pipes.forEach(p=>p.x -= this.speed*(dt/1000));
+      // remove offscreen
+      this.pipes = this.pipes.filter(p=>p.x+p.w> -10);
+      // collide
+      if(this.bird.y<0 || this.bird.y>canvas.height){ this.alive=false; gameOver(); }
+      for(const p of this.pipes){
+        if(this.bird.x>p.x+p.w && !p.scored){ p.scored=true; this.score+=1; }
+        if(this.bird.x>p.x-12 && this.bird.x<p.x+p.w+12){
+          if(this.bird.y<p.top || this.bird.y>p.bottom){ this.alive=false; gameOver(); }
+        }
+      }
+    }
+    draw(){
+      // sky gradient
+      const g = ctx.createLinearGradient(0,0,0,canvas.height);
+      g.addColorStop(0,'#0b1626'); g.addColorStop(1,'#061018');
+      ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
+      // pipes
+      this.pipes.forEach(p=>{
+        ctx.fillStyle='#4df3ff';
+        ctx.fillRect(p.x, 0, p.w, p.top);
+        ctx.fillRect(p.x, p.bottom, p.w, canvas.height-p.bottom);
+      })
+      // bird
+      ctx.fillStyle='#9dff4d';
+      ctx.beginPath(); ctx.arc(this.bird.x, this.bird.y, 12, 0, Math.PI*2); ctx.fill();
+      // ground line
+      ctx.fillStyle='rgba(77,243,255,.15)';
+      ctx.fillRect(0, canvas.height-4, canvas.width, 4);
+      drawHUD(this.score);
+    }
+    key(k,down){ if(!down) return; if(k==='Space'||k==='ArrowUp'||k==='KeyW') this.bird.vy = this.impulse; }
+  }
+
+  function drawHUD(score){
+    ctx.font='20px ui-monospace, Menlo, monospace';
+    ctx.fillStyle='rgba(234,246,255,.85)';
+    ctx.fillText(`Score: ${score}`, 16, 28);
+    ctx.fillText(`Best: ${best}`, 16, 52);
+  }
+
+  function gameOver(){
+    running=false; setState('game over');
+    if(game.score>best){ best=game.score; localStorage.setItem('arcade_best', String(best)); bestEl.textContent=best; }
+    // overlay
+    ctx.fillStyle='rgba(0,0,0,.55)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#eaf6ff'; ctx.font='28px ui-monospace, Menlo, monospace';
+    ctx.fillText('Game Over – Press Play to restart', 220, canvas.height/2);
+  }
+
+  function startGame(){
+    const type = gameSelect.value;
+    game = type==='snake' ? new SnakeGame() : new FlappyGame();
+    game.start();
+    running=true; paused=false; setState('playing'); scoreEl.textContent='0';
+    requestAnimationFrame(loop);
+  }
+
+  function loop(ts){
+    if(!running) return;
+    if(!last) last=ts; const dt = ts-last; last=ts;
+    frames++; if(frames%12===0){ fps = Math.round(1000/dt); fpsEl.textContent = fps; }
+    if(!paused){ game.update(dt); game.draw(); scoreEl.textContent = game.score; }
+    requestAnimationFrame(loop);
+  }
+
+  // input
+  const keysDown = new Set();
+  window.addEventListener('keydown', e=>{
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+    if(e.code==='KeyP'){ paused=!paused; setState(paused? 'paused':'playing'); return; }
+    keysDown.add(e.code);
+    if(game) game.key(e.code, true);
+  });
+  window.addEventListener('keyup', e=>{ keysDown.delete(e.code); if(game) game.key(e.code, false); });
+
+  // mobile buttons
+  mobileKeys.addEventListener('click', (e)=>{
+    const b = e.target.closest('button'); if(!b) return;
+    const k = b.dataset.key; if(k){ if(game) game.key(k,true); }
+    if(b.id==='pauseBtn'){ paused=!paused; setState(paused? 'paused':'playing'); }
+  });
+
+  playBtn.addEventListener('click', ()=>{ startGame(); });
+
+  // initial splash
+  (function splash(){
+    ctx.fillStyle='#061018'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.font='32px ui-monospace, Menlo, monospace'; ctx.fillStyle='#eaf6ff';
+    ctx.fillText('Select a game and press Play', 260, canvas.height/2);
+  })();
+})();
+</script>
+</body>
+</html>
